@@ -36,7 +36,7 @@ if (p == NULL)
 p->word = (char *)malloc(strlen(word) + 1);
 if (p->word == NULL)
 {
-	printf("Errpr: failed to allocate memory for word\n");
+	printf("Error: failed to allocate memory for word\n");
 	free(p);
 	exit(0);
 }
@@ -89,14 +89,25 @@ int get_word_from_string(char *str, int *pos, char *word)
     return 1;
 }
 
-TNODE *tree_insert(TNODE *p, const char *word);
+TNODE *tree_insert(TNODE *p, const char *word)
 {
-	if (p == NULL);
+	if (p == NULL)
 	{
 		return tree_create_node(word);
 	}
-	int cmp = stncmp(word, p->word, 5);
+    int cmp = strncmp(word, p->word, 5);
 	if(cmp < 0)
+{
+	p->lchild = tree_insert(p->lchild, word);
+	return p;
+}
+    if (cmp > 0)
+{
+	p->rchild = tree_insert(p->rchild, word);
+	return p;
+}
+cmp = strcmp(word, p->word);
+if (cmp < 0)
 {
 	p->lchild = tree_insert(p->lchild, word);
 	return p;
@@ -106,17 +117,78 @@ if (cmp > 0)
 	p->rchild = tree_insert(p->rchild, word);
 	return p;
 }
-
-
-
-
-
-
-
-
-
-int main() {
-	
-	
-	return 0;
+p->count++;
+return p;
 }
+
+void tree_write_to_file(TNODE *p, FILE *out)
+{
+	if (p != NULL)
+	{
+		tree_write_to_file(p->lchild, out);
+		fprintf(out, "%s\t%d\n", p->word, p->count);
+		tree_write_to_file(p->rchild, out);
+	}
+}
+void tree_free(TNODE *p)
+{
+	if (p != NULL)
+	{
+		tree_free(p->lchild);
+		tree_free(p->rchild);
+		free(p->word);
+		free(p);
+	}
+}
+int main(int argc, char *argv[])
+{
+	if (argc < 2)
+	{
+		printf("Usage: %s <file1> [file2 ...]\n", argv[0]);
+		printf("Example: %s files/text1.txt files/text2.txt\n", argv[0]);
+		return 1;
+	}
+	for (int i = 1; i < argc; i++)
+	{
+		char filepath[MAX_PATH_LEN];
+		snprintf(filepath, sizeof(filepath), "%s", argv[i]);
+		
+		FILE *file = fopen(filepath, "r");
+		if (file == NULL)
+		{
+			printf("Cannot open file: %s\n", filepath);
+			continue;
+		}
+		printf("Processing file: %s\n", filepath);
+		char line[MAX_WORD_LEN];
+		while (fgets(line, sizeof(line), file) != NULL)
+		{
+			int pos = 0;
+			char word[MAX_WORD_LEN];
+			while (get_word_from_string(line, &pos, word))
+			{
+				string_to_lower(word);
+				tree = tree_insert(tree, word);
+			}
+		}
+		fclose(file);
+	}
+	FILE *output = fopen("dictionary.txt", "w");
+	if (output == NULL)
+	{
+		printf("Cannot create output file dictionary.txt\n");
+		tree_free(tree);
+		return 1;
+	}
+	
+	tree_write_to_file(tree, output);
+	fclose(output);
+	printf("\nDictionary written to: dictionary.txt\n");
+    tree_free(tree);
+    tree = NULL;
+    getchar();
+    return 0;
+}
+
+
+
